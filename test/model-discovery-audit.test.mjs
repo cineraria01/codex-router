@@ -203,7 +203,10 @@ test("the discovery workflow keeps live secrets away from pull-request code", ()
       provider.credential?.resolver ||
       providerCatalogKind(provider) !== "models-endpoint" ||
       provider.authMode === "anonymous" ||
-      provider.keyless
+      provider.keyless ||
+      // A loopback provider (a local account pool such as TeamClaude) is
+      // unreachable from a hosted runner, so there is no secret to map.
+      ["127.0.0.1", "localhost", "[::1]"].includes(new URL(provider.baseUrl).hostname)
     ) continue;
     const names = provider.credential?.environment || [];
     assert.ok(

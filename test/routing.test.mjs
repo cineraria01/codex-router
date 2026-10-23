@@ -8401,6 +8401,8 @@ test("router normalizes forced tool choices before LiteLLM for auto-tool-choice 
     for (const [slug, gatewayModel] of [
       ["opencode-go/deepseek-v4.1-flash", "opencode-go-deepseek-v4-1-flash"],
       ["openrouter/deepseek-v4.1-flash", "openrouter-deepseek-v4-1-flash"],
+      ["teamclaude/claude-opus-5-5", "teamclaude-claude-opus-5-5"],
+      ["teamclaude/claude-sonnet-5-5", "teamclaude-claude-sonnet-5-5"],
       ["ollama-cloud/minimax-m3", "ollama-cloud-minimax-m3"],
       ["commandcode/muse-spark-1.2", "commandcode-muse-spark-1-2"],
       [
@@ -8415,7 +8417,10 @@ test("router normalizes forced tool choices before LiteLLM for auto-tool-choice 
 
     // The collaboration relay uses an object form; it has the same upstream
     // restriction and therefore must not survive the Responses hop either.
-    for (const slug of ["ollama-cloud/minimax-m3", "commandcode/muse-spark-1.2"]) {
+    for (const slug of [
+      "ollama-cloud/minimax-m3", "commandcode/muse-spark-1.2",
+      "teamclaude/claude-opus-5-5", "teamclaude/claude-sonnet-5-5",
+    ]) {
       const forcedFunction = await route(slug, {
         type: "function",
         name: "relay_external_agent_payload",
@@ -8425,16 +8430,17 @@ test("router normalizes forced tool choices before LiteLLM for auto-tool-choice 
 
     // Suppressing tools is not forcing one, and remains necessary for turns
     // such as compaction that deliberately disable tools.
-    const suppressed = await route("commandcode/muse-spark-1.2", "none");
-    assert.equal(suppressed.tool_choice, "none");
-
-    const absent = await route("commandcode/muse-spark-1.2");
-    assert.equal("tool_choice" in absent, false);
+    for (const slug of ["commandcode/muse-spark-1.2", "teamclaude/claude-opus-5-5", "teamclaude/claude-sonnet-5-5"]) {
+      const suppressed = await route(slug, "none");
+      assert.equal(suppressed.tool_choice, "none");
+      const absent = await route(slug);
+      assert.equal("tool_choice" in absent, false);
+    }
 
     // The profile remains model-scoped: siblings behind both providers
     // preserve a forced choice so their capability probes and collaboration
     // relays keep the stronger contract they support.
-    for (const slug of ["ollama-cloud/glm-5.2", "commandcode/gpt-5.6-sol"]) {
+    for (const slug of ["ollama-cloud/glm-5.2", "commandcode/gpt-5.6-sol", "teamclaude/claude-haiku-5-5", "anthropic-api/claude-opus-4.8"]) {
       const sibling = await route(slug, "required");
       assert.equal(sibling.tool_choice, "required");
     }

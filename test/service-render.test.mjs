@@ -105,6 +105,29 @@ test("all service platforms persist a bounded native catalog polling override", 
   }
 });
 
+test("all service platforms persist an explicit native base URL override", () => {
+  const testRoot = mkdtempSync(path.join(os.tmpdir(), "native-base-service-"));
+  const name = "CODEX_NATIVE_BASE_URL";
+  const value = "http://127.0.0.1:3457/codex";
+  try {
+    for (const [platform, script] of [["darwin", "service-macos.mjs"], ["linux", "service-linux.mjs"], ["win32", "service-windows.mjs"]]) {
+      for (const absent of [undefined, "", "not a url", "file:///etc/passwd", "http://x/\r\nset EVIL=1"]) {
+        const output = serviceCommand(script, platform, testRoot, "render", "codex", root, { [name]: absent });
+        assert.ok(!output.includes(name), `${platform}: ${JSON.stringify(absent)}`);
+      }
+      const output = serviceCommand(script, platform, testRoot, "render", "codex", root, { [name]: value });
+      const expectedLine = platform === "darwin"
+        ? `<key>${name}</key>\n    <string>${value}</string>`
+        : platform === "linux"
+          ? `Environment="${name}=${value}"`
+          : `set "${name}=${value}"`;
+      assert.ok(output.includes(expectedLine), `${platform}: ${expectedLine}`);
+    }
+  } finally {
+    rmSync(testRoot, { recursive: true, force: true });
+  }
+});
+
 test("service regeneration retains persisted hook opt-in on all platforms", () => {
   const testRoot = mkdtempSync(path.join(os.tmpdir(), "router-hook-service-"));
   const stateDir = path.join(testRoot, "codex router state");

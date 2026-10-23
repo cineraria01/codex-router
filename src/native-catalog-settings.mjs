@@ -17,7 +17,31 @@ export function nativeCatalogPollIntervalMs(environment = process.env) {
     : DEFAULT_NATIVE_CATALOG_POLL_INTERVAL_MS;
 }
 
+const NATIVE_BASE_URL_ENV = "CODEX_NATIVE_BASE_URL";
+
+// The router reads CODEX_NATIVE_BASE_URL to reach native GPT through another
+// local proxy. The service launchers are regenerated from a fixed variable
+// list, so an override that is not carried here vanished on every reinstall
+// and native turns silently went straight to chatgpt.com. Only a plain
+// http(s) URL is persisted: the value lands in a CMD `set` line and a plist,
+// where whitespace or control characters could break or extend the file.
+function nativeBaseUrl(environment) {
+  const value = String(environment[NATIVE_BASE_URL_ENV] ?? "").trim();
+  if (!value || /[\s\x00-\x1f\x7f"%]/.test(value)) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function serviceNativeCatalogEnvironment(environment = process.env) {
-  if (!Object.hasOwn(environment, POLL_INTERVAL_ENV)) return {};
-  return { [POLL_INTERVAL_ENV]: String(nativeCatalogPollIntervalMs(environment)) };
+  const result = {};
+  if (Object.hasOwn(environment, POLL_INTERVAL_ENV)) {
+    result[POLL_INTERVAL_ENV] = String(nativeCatalogPollIntervalMs(environment));
+  }
+  const baseUrl = nativeBaseUrl(environment);
+  if (baseUrl) result[NATIVE_BASE_URL_ENV] = baseUrl;
+  return result;
 }
