@@ -1151,7 +1151,9 @@ function normalizeAutoToolChoice(payload, route) {
     return;
   }
   if (
-    ["auto-tool-choice", "ollama-cloud-auto-tool-choice"].includes(route.requestProfile) &&
+    (["auto-tool-choice", "ollama-cloud-auto-tool-choice"].includes(route.requestProfile) ||
+      (route.requestProfile === "anthropic-reasoning" &&
+        ["claude-opus-5-5", "claude-sonnet-5-5"].includes(route.upstreamModel))) &&
     payload.tool_choice !== undefined &&
     payload.tool_choice !== "none"
   ) {
